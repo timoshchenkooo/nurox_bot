@@ -1,52 +1,38 @@
 import logging
 import requests
-from aiogram import Bot, Dispatcher, Router, types
-from aiogram.enums import ParseMode, ChatAction
-from aiogram.types import Message
-from aiogram.utils.markdown import markdown_decoration
-from aiogram.client.default import DefaultBotProperties
-from aiogram.utils.chat_action import ChatActionMiddleware
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram import F
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ParseMode
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.utils import executor
 
 from config import BOT_TOKEN, API_URL
 
-# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
-# Настройка бота и диспетчера
-bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
-dp = Dispatcher(storage=MemoryStorage())
-router = Router()
-dp.include_router(router)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
+dp.middleware.setup(LoggingMiddleware())
 
-# Middleware (опционально, можно удалить, если не используете)
-dp.message.middleware(ChatActionMiddleware())
+@dp.message_handler(commands=["start", "help"])
+async def send_welcome(message: types.Message):
+    await message.reply("Привет! Я Nurox-бот 🤖\n\nНапиши запрос, и я сгенерирую для тебя бизнес-идею, пост или стратегию.")
 
-@router.message(F.text.startswith("/start") | F.text.startswith("/help"))
-async def send_welcome(message: Message):
-    await message.answer("Привет! Я Nurox-бот 🤖\n\nНапиши запрос, и я сгенерирую для тебя бизнес-идею, пост или стратегию.")
-
-@router.message(F.text)
-async def handle_message(message: Message):
+@dp.message_handler()
+async def handle_message(message: types.Message):
     prompt = message.text.strip()
 
-    await bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+ # 🟡 Показываем "печатает..."
+    await bot.send_chat_action(message.chat.id, action=types.ChatActions.TYPING)
 
     try:
         response = requests.post(API_URL, json={"prompt": prompt})
         if response.status_code == 200:
             result = response.json().get("response", "🤔 Не смог придумать ответ.")
-            await message.answer(result)
+            await message.reply(result, parse_mode=ParseMode.MARKDOWN)
         else:
-            await message.answer("⚠️ Ошибка: модель не ответила.")
+            await message.reply("⚠️ Ошибка: модель не ответила.")
     except Exception as e:
-        await message.answer("❌ Ошибка при соединении с API.")
+        await message.reply("❌ Ошибка при соединении с API.")
 
-# Точка входа
-if name == "__main__":
-    import asyncio
-    async def main():
-        await dp.start_polling(bot)
-
-    asyncio.run(main())
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
