@@ -2,6 +2,7 @@ import logging
 import requests
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
+from aiogram.utils.chat_action import ChatActionMiddleware
 from aiogram.utils import executor
 
 from config import BOT_TOKEN, API_URL
