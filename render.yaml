@@ -1,0 +1,3 @@
+buildCommand: ./build.sh
+startCommand: python bot.py
+pythonVersion: 3.13
