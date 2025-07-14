@@ -40,7 +40,7 @@ async def handle_message(message: Message):
     except Exception:
         await message.answer("❌ Ошибка при соединении с API.")
 
-if name == "__main__":
+if __name__ == "__main__":
     import asyncio
     async def main():
         await dp.start_polling(bot)
